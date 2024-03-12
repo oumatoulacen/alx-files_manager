@@ -1,15 +1,13 @@
 const { v4: uuidv4 } = require('uuid');
 const sha1 = require('sha1');
+const { ObjectId } = require('mongodb');
 
 const redisClient = require('../utils/redis');
 const dbClient = require('../utils/db');
 
-const database = process.env.DB_DATABASE || 'files_manager';
-
 class AuthController {
   static async getConnect(req, res) {
-    const db = dbClient.client.db(database);
-    const users = db.collection('users');
+    const users = dbClient.db.collection('users');
 
     const authHeader = req.headers.authorization;
     // No or invalid Authorization header
@@ -22,12 +20,14 @@ class AuthController {
     const credentials = Buffer.from(base64Credentials, 'base64').toString();
     const [username, password] = credentials.split(':');
     console.log(username, password);
+
     // No or invalid credentials
     if (!username || !password) {
       return res.status(403).send({ error: 'Unauthorized' });
     }
     // Check username and password
     const user = await users.findOne({ email: username, password: sha1(password) });
+    console.log(user);
     if (!user) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
@@ -36,14 +36,15 @@ class AuthController {
     // Save the token in Redis
     const key = `auth_${token}`;
     const duration = 60 * 60 * 24; // 24 hours / 86400 seconds
-    await redisClient.set(key, user._id, duration);
 
+    const result = await redisClient.set(key, user._id.toString(), duration);
+    console.log(result);
     return res.status(200).send({ token });
   }
 
   static async getDisconnect(req, res) {
     // Get disconnected token from the header
-    const token = req.headers['X-Token'];
+    const token = req.headers['x-token'];
     if (!token) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
@@ -64,10 +65,10 @@ class AuthController {
   }
 
   static async getMe(req, res) {
-    const db = dbClient.client.db(database);
-    const users = db.collection('users');
+    const users = dbClient.db.collection('users');
     // get the token from the header
-    const token = req.headers['X-Token'];
+    const token = req.headers['x-token'];
+    console.log(token);
     if (!token) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
@@ -75,12 +76,13 @@ class AuthController {
     // get the user ID from Redis
     const key = `auth_${token}`;
     const userId = await redisClient.get(key);
+    console.log(userId);
     if (!userId) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
 
     // get the user from the database
-    const user = await users.findOne({ _id: userId });
+    const user = await users.findOne({ _id: ObjectId(userId) });
     if (!user) {
       return res.status(401).send({ error: 'Unauthorized' });
     }

@@ -2,14 +2,11 @@ const sha1 = require('sha1');
 const dbClient = require('../utils/db');
 // const redisClient = require('../utils/redis');
 
-const database = process.env.DB_DATABASE || 'files_manager';
-
 class UsersController {
   static async postNew(req, res) {
-    const db = dbClient.client.db(database);
-    const users = db.collection('users');
+    const users = dbClient.db.collection('users');
 
-    console.log(req.body);
+    // console.log(req.body);
     const { email, password } = req.body;
 
     // Check if email and password are provided
