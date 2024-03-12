@@ -23,7 +23,7 @@ class AuthController {
 
     // No or invalid credentials
     if (!username || !password) {
-      return res.status(403).send({ error: 'Unauthorized' });
+      return res.status(401).send({ error: 'Unauthorized' });
     }
     // Check username and password
     const user = await users.findOne({ email: username, password: sha1(password) });
