@@ -34,6 +34,7 @@ class UsersController {
 
     // create a new user in the database
     const newUser = await users.insertOne({ email, password: sha1(password) });
+    console.log(newUser);
     return res.status(201).send({ id: newUser.insertedId, email });
   }
 }
