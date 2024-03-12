@@ -68,7 +68,6 @@ class AuthController {
     const users = dbClient.db.collection('users');
     // get the token from the header
     const token = req.headers['x-token'];
-    console.log(token);
     if (!token) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
@@ -76,7 +75,6 @@ class AuthController {
     // get the user ID from Redis
     const key = `auth_${token}`;
     const userId = await redisClient.get(key);
-    console.log(userId);
     if (!userId) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
