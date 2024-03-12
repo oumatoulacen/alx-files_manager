@@ -1,5 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-const base64 = require('base64url');
 const { v4: uuidv4 } = require('uuid');
 const sha1 = require('sha1');
 
@@ -12,14 +10,18 @@ class AuthController {
   static async getConnect(req, res) {
     const db = dbClient.client.db(database);
     const users = db.collection('users');
-    const authHeader = req.headers.Authorization;
-    if (!authHeader || !authHeader.startsWith('Basic ')) {
-      return res.status(403).send({ error: 'Unauthorized' }); // No or invalid credentials
-    }
-    const base64Credentials = authHeader.split(' ')[1];
-    const credentials = base64(base64Credentials).toString();
-    const [username, password] = credentials.split(':');
 
+    const authHeader = req.headers.authorization;
+    // No or invalid Authorization header
+    if (!authHeader || !authHeader.startsWith('Basic ')) {
+      return res.status(403).send({ error: 'Unauthorized' });
+    }
+
+    // Extract Base64 encoded credentials from authorization header
+    const base64Credentials = authHeader.split(' ')[1];
+    const credentials = Buffer.from(base64Credentials, 'base64').toString();
+    const [username, password] = credentials.split(':');
+    console.log(username, password);
     // No or invalid credentials
     if (!username || !password) {
       return res.status(403).send({ error: 'Unauthorized' });
