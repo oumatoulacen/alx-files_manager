@@ -8,7 +8,9 @@ const url = `mongodb://${host}:${port}/`;
 class DBClient {
   constructor() {
     this.client = new MongoClient(url);
-    this.client.connect();
+    this.client.connect().then(() => {
+      this.db = this.client.db(database);
+    }).catch((error) => console.log(error));
   }
 
   isAlive() {
