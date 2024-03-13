@@ -43,7 +43,7 @@ class FilesController {
       isPublic,
       parentId,
     };
-    fs.mkdir(path.dirname(FOLDER_PATH), { recursive: true });
+    await fs.mkdir(FOLDER_PATH, { recursive: true });
     const filePath = path.join(FOLDER_PATH, uuidv4());
     if (type !== 'folder') {
       await fs.writeFile(filePath, data);
