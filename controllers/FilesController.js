@@ -35,7 +35,7 @@ class FilesController {
     if (!name) {
       return res.status(400).send({ error: 'Missing name' });
     }
-    if (!type || (type !== 'folder' && type !== 'file' && type !== 'folder')) {
+    if (!type || (type !== 'folder' && type !== 'file' && type !== 'image')) {
       return res.status(400).send({ error: 'Missing type' });
     }
     if (!data && type !== 'folder') {
