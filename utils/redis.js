@@ -14,6 +14,8 @@ class RedisClient {
     return this.client.connected;
   }
 
+  // You can use promisify to convert the callback-based methods to promise-based methods
+  // e.g: promiseGet = promisify(this.client.get).bind(this.client);
   async get(key) {
     return new Promise((resolve, reject) => {
       this.client.get(key, (err, reply) => {
