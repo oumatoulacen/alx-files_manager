@@ -82,9 +82,10 @@ class FilesController {
     });
 
     const newFile = await files.insertOne(file);
-    return res.status(200).send({ id: newFile ? newFile.insertedId : 0, ...file });
+    return res.status(200).send({ id: newFile.insertedId, ...file });
   }
 
+  // get the file based on the file id
   static async getShow(req, res) {
     const user = await FilesController.getUser(req);
     if (!user) {
@@ -99,18 +100,18 @@ class FilesController {
     return res.status(200).send({ ...file });
   }
 
+  // get the list of files based on the parentId
   static async getIndex(req, res) {
     const user = await FilesController.getUser(req);
-    const collection = await dbClient.db.collection('files');
+    const collection = dbClient.db.collection('files');
     if (!user) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
-
-    const parentId = req.query.parentId || 0;
-    const page = req.query.page || 0;
-    const limit = req.query.limit || 20;
-    const query = { parentId: parentId ? ObjectId(parentId) : 0, userId: user._id };
-    const files = collection.find(query).limit(limit).skip(page * limit).toArray();
+    const parentId = req.query.parentId ? ObjectId(req.query.parentId) : 0;
+    // const page = req.query.page || 0;
+    // const limit = req.query.limit || 20;
+    const query = { parentId, userId: ObjectId(user._id) };
+    const files = await collection.find(query).toArray();
     return res.status(200).send(files);
   }
 
