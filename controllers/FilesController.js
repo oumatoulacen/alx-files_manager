@@ -55,23 +55,29 @@ class FilesController {
 
     const files = dbClient.db.collection('files');
     // Create a new folder in the database
+
+    if (type === 'folder') {
+      const file = {
+        userId: user._id,
+        name,
+        type,
+        isPublic: isPublic || false,
+        parentId: parentId || 0,
+      };
+      const result = await files.insertOne(file);
+      return res.status(201).send({ id: result.insertedId, ...file });
+    }
+
+    // save the data in the local path
     const file = {
       userId: user._id,
       name,
       type,
-      parentId: parentId || 0,
       isPublic: isPublic || false,
+      parentId: parentId || 0,
       localPath: path.join(FOLDER_PATH, parent ? parent.name : '', uuidv4()),
     };
-    if (type === 'folder') {
-      const result = await files.insertOne(file);
-      const folder = { ...file };
-      console.log(folder);
-      delete folder.localPath;
-      return res.status(201).send({ id: result.insertedId, ...folder });
-    }
 
-    // save the data in the local path
     fs.mkdir(FOLDER_PATH, { recursive: true }, (err) => {
       if (err) {
         console.error(err.message);
