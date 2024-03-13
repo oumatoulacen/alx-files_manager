@@ -19,7 +19,6 @@ class AuthController {
     const base64Credentials = authHeader.split(' ')[1];
     const credentials = Buffer.from(base64Credentials, 'base64').toString();
     const [username, password] = credentials.split(':');
-    console.log(username, password);
 
     // No or invalid credentials
     if (!username || !password) {
@@ -27,7 +26,6 @@ class AuthController {
     }
     // Check username and password
     const user = await users.findOne({ email: username, password: sha1(password) });
-    console.log(user);
     if (!user) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
@@ -37,8 +35,7 @@ class AuthController {
     const key = `auth_${token}`;
     const duration = 60 * 60 * 24; // 24 hours / 86400 seconds
 
-    const result = await redisClient.set(key, user._id.toString(), duration);
-    console.log(result);
+    await redisClient.set(key, user._id.toString(), duration);
     return res.status(200).send({ token });
   }
 

@@ -7,6 +7,7 @@ const route = express.Router();
 const AppController = require('../controllers/AppController');
 const UsersController = require('../controllers/UsersController');
 const AuthController = require('../controllers/AuthController');
+const FilesController = require('../controllers/FilesController');
 
 // endpoint to check the status of the API
 route.get('/status', AppController.getStatus);
@@ -19,5 +20,8 @@ route.post('/users', UsersController.postNew);
 route.get('/connect', AuthController.getConnect);
 route.get('/disconnect', AuthController.getDisconnect);
 route.get('/users/me', AuthController.getMe);
+
+// endpoint to create a new file
+route.post('/files', FilesController.postUpload);
 
 module.exports = route;
