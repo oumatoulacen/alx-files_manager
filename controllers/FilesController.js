@@ -75,7 +75,7 @@ class FilesController {
       type,
       isPublic: isPublic || false,
       parentId: parentId || 0,
-      localPath: path.join(FOLDER_PATH, parent ? parent.name : '', uuidv4()),
+      localPath: path.join(FOLDER_PATH, uuidv4()),
     };
 
     fs.mkdir(FOLDER_PATH, { recursive: true }, (err) => {
@@ -87,7 +87,6 @@ class FilesController {
     });
 
     const content = Buffer.from(data, 'base64').toString();
-    console.log('content: ', content);
     fs.writeFile(file.localPath, content, 'utf8', (err) => {
       if (err) {
         console.error(err.message);
