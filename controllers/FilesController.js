@@ -108,10 +108,11 @@ class FilesController {
       return res.status(401).send({ error: 'Unauthorized' });
     }
     const parentId = req.query.parentId ? ObjectId(req.query.parentId) : 0;
-    // const page = req.query.page || 0;
-    // const limit = req.query.limit || 20;
+    const page = parseInt(req.query.page, 10) || 0;
+    const limit = 20;
+    const skip = page * limit;
     const query = { parentId, userId: ObjectId(user._id) };
-    const files = await collection.find(query).toArray();
+    const files = await collection.find(query).skip(skip).limit(limit).toArray();
     return res.status(200).send(files);
   }
 
