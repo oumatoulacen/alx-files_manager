@@ -62,7 +62,7 @@ class FilesController {
         name,
         type,
         isPublic: isPublic || false,
-        parentId: parentId || 0,
+        parentId: ObjectId(parentId) || 0,
       };
       const result = await files.insertOne(file);
       return res.status(201).send({ id: result.insertedId, ...file });
@@ -74,7 +74,7 @@ class FilesController {
       name,
       type,
       isPublic: isPublic || false,
-      parentId: parentId || 0,
+      parentId: ObjectId(parentId) || 0,
       localPath: path.join(FOLDER_PATH, uuidv4()),
     };
 

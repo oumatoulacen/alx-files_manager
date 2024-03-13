@@ -23,5 +23,7 @@ route.get('/users/me', AuthController.getMe);
 
 // endpoint to create a new file
 route.post('/files', FilesController.postUpload);
+route.get('/files/:id', FilesController.getShow);
+route.get('/files', FilesController.getIndex);
 
 module.exports = route;
