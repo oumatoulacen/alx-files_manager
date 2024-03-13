@@ -10,21 +10,7 @@ const dbClient = require('../utils/db');
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 class FilesController {
   static async postUpload(req, res) {
-    // You can use AuthController.getMe method to simplify
-    const token = req.headers['x-token'];
-    if (!token) {
-      return res.status(401).send({ error: 'Unauthorized' });
-    }
-
-    // Get the user ID from Redis
-    const key = `auth_${token}`;
-    const userId = await redisClient.get(key);
-
-    // If the user is exist
-    if (!userId) {
-      return res.status(401).send({ error: 'Unauthorized' });
-    }
-    const user = await dbClient.db.collection('users').findOne({ _id: ObjectId(userId) });
+    const user = await FilesController.getUser(req);
     if (!user) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
@@ -62,7 +48,7 @@ class FilesController {
         name,
         type,
         isPublic: isPublic || false,
-        parentId: ObjectId(parentId) || 0,
+        parentId: parentId ? ObjectId(parentId) : 0,
       };
       const result = await files.insertOne(file);
       return res.status(201).send({ id: result.insertedId, ...file });
@@ -74,7 +60,7 @@ class FilesController {
       name,
       type,
       isPublic: isPublic || false,
-      parentId: ObjectId(parentId) || 0,
+      parentId: parentId ? ObjectId(parentId) : 0,
       localPath: path.join(FOLDER_PATH, uuidv4()),
     };
 
@@ -95,21 +81,59 @@ class FilesController {
       console.log('Text file written successfully');
     });
 
-    // insure the file is saved
-    // fs.readFile(file.localPath, 'utf8', (err, data) => {
-    //   if (err) {
-    //     console.error(err.message);
-    //     return;
-    //   }
-    //   console.log('data: ', data);
-    // });
-
     const newFile = await files.insertOne(file);
-    if (!newFile) {
-      return res.status(400).send({ error: 'Can\'t create file' });
+    return res.status(200).send({ id: newFile ? newFile.insertedId : 0, ...file });
+  }
+
+  static async getShow(req, res) {
+    const user = await FilesController.getUser(req);
+    if (!user) {
+      return res.status(401).send({ error: 'Unauthorized' });
     }
 
-    return res.status(200).send({ id: newFile.insertedId, ...file });
+    const fileId = req.params.id;
+    const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(fileId), userId: user._id });
+    if (!file) {
+      return res.status(404).send({ error: 'Not found' });
+    }
+    return res.status(200).send({ ...file });
+  }
+
+  static async getIndex(req, res) {
+    const user = await FilesController.getUser(req);
+    const collection = await dbClient.db.collection('files');
+    if (!user) {
+      return res.status(401).send({ error: 'Unauthorized' });
+    }
+
+    const parentId = req.query.parentId || 0;
+    const page = req.query.page || 0;
+    const limit = req.query.limit || 20;
+    const query = { parentId: parentId ? ObjectId(parentId) : 0, userId: user._id };
+    const files = collection.find(query).limit(limit).skip(page * limit).toArray();
+    return res.status(200).send(files);
+  }
+
+  static async getUser(req) {
+    const token = req.headers['x-token'];
+    if (!token) {
+      return;
+    }
+
+    // Get the user ID from Redis
+    const key = `auth_${token}`;
+    const userId = await redisClient.get(key);
+
+    // If the user is exist
+    if (!userId) {
+      return;
+    }
+    const user = await dbClient.db.collection('users').findOne({ _id: ObjectId(userId) });
+    if (!user) {
+      return;
+    }
+    // eslint-disable-next-line consistent-return
+    return user;
   }
 }
 
