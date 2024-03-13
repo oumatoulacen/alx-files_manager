@@ -42,8 +42,9 @@ class FilesController {
       return res.status(400).send({ error: 'Missing data' });
     }
     // check if the parentId is valid
+    let parent;
     if (parentId) {
-      const parent = await dbClient.db.collection('files').findOne({ _id: ObjectId(parentId) });
+      parent = await dbClient.db.collection('files').findOne({ _id: ObjectId(parentId) });
       if (!parent) {
         return res.status(400).send({ error: 'Parent not found' });
       }
@@ -60,7 +61,7 @@ class FilesController {
       type,
       parentId: parentId || 0,
       isPublic: isPublic || false,
-      localPath: path.join(FOLDER_PATH, uuidv4()),
+      localPath: path.join(FOLDER_PATH, parent ? parent.name : '', uuidv4()),
     };
     if (type === 'folder') {
       const result = await files.insertOne(file);
