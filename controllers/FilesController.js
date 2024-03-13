@@ -11,7 +11,6 @@ class FilesController {
   static async postUpload(req, res) {
     // You can use AuthController.getMe method to simplify
     const token = req.headers['x-token'];
-    console.log(`Uploading file with token: ${token}`);
     if (!token) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
@@ -55,10 +54,9 @@ class FilesController {
     }
 
     const files = dbClient.db.collection('files');
-
     // Create a new folder in the database
     const file = {
-      userId: ObjectId(userId),
+      userId: user._id,
       name,
       type,
       parentId: parentId || 0,
@@ -66,14 +64,17 @@ class FilesController {
       localPath: path.join('./', FOLDER_PATH, uuidv4()),
     };
     if (type === 'folder') {
-      const id = await files.insertOne(file);
+      const result = await files.insertOne(file);
       const folder = { ...file };
       console.log(folder);
       delete folder.localPath;
-      return res.status(201).send({ id: id.insertedId, ...folder });
+      return res.status(201).send({ id: result.insertedId, ...folder });
     }
 
     // save the data in the local path
+    if (!fs.existsSync(FOLDER_PATH)) {
+      fs.mkdirSync(FOLDER_PATH, { recursive: true });
+    }
     const content = Buffer.from(data, 'base64').toString();
     fs.writeFile(file.localPath, content, 'utf8', (err) => {
       if (err) {
