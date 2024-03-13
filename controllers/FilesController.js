@@ -5,6 +5,7 @@ const fs = require('fs');
 
 const redisClient = require('../utils/redis');
 const dbClient = require('../utils/db');
+// const AuthController = require('./AuthController');
 
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 class FilesController {
@@ -27,8 +28,6 @@ class FilesController {
     if (!user) {
       return res.status(401).send({ error: 'Unauthorized' });
     }
-    console.log(`user: ${user.email} is authorized`);
-    console.log(req.body);
     // check if the data provided is valid and sufficient
     const {
       name, data, type, parentId, isPublic,
@@ -61,7 +60,7 @@ class FilesController {
       type,
       parentId: parentId || 0,
       isPublic: isPublic || false,
-      localPath: path.join('./', FOLDER_PATH, uuidv4()),
+      localPath: path.join(FOLDER_PATH, uuidv4()),
     };
     if (type === 'folder') {
       const result = await files.insertOne(file);
@@ -72,10 +71,16 @@ class FilesController {
     }
 
     // save the data in the local path
-    if (!fs.existsSync(FOLDER_PATH)) {
-      fs.mkdirSync(FOLDER_PATH, { recursive: true });
-    }
+    fs.mkdir(FOLDER_PATH, { recursive: true }, (err) => {
+      if (err) {
+        console.error(err.message);
+        return;
+      }
+      console.log('Directory is created.');
+    });
+
     const content = Buffer.from(data, 'base64').toString();
+    console.log('content: ', content);
     fs.writeFile(file.localPath, content, 'utf8', (err) => {
       if (err) {
         console.error(err.message);
@@ -83,6 +88,15 @@ class FilesController {
       }
       console.log('Text file written successfully');
     });
+
+    // insure the file is saved
+    // fs.readFile(file.localPath, 'utf8', (err, data) => {
+    //   if (err) {
+    //     console.error(err.message);
+    //     return;
+    //   }
+    //   console.log('data: ', data);
+    // });
 
     const newFile = await files.insertOne(file);
     if (!newFile) {
