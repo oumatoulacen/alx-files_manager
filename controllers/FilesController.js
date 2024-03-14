@@ -40,7 +40,7 @@ class FilesController {
     }
     const data = Buffer.from(base64Data, 'base64');
     const file = {
-      userId: user._id,
+      userId: ObjectId(user._id),
       name,
       type,
       isPublic,
@@ -55,12 +55,12 @@ class FilesController {
     const result = await dbClient.db.collection('files').insertOne(file);
     const userId = user._id;
     return res.status(201).json({
-      id: result.insertedId,
-      userId,
+      id: result.insertedId.toString(),
+      userId: userId.toString(),
       name,
       type,
       isPublic,
-      parentId: parentId === 0 ? '0' : parentId,
+      parentId,
     });
   }
 
