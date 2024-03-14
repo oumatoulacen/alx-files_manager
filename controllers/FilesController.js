@@ -41,17 +41,24 @@ class FilesController {
       name,
       type,
       isPublic,
-      parentId,
+      parentId: parentId === 0 ? '0' : ObjectId(parentId),
     };
-    await fs.mkdir(FOLDER_PATH, { recursive: true });
-    const filePath = path.join(FOLDER_PATH, uuidv4());
+    if (type === 'folder') await fs.mkdir(FOLDER_PATH, { recursive: true });
     if (type !== 'folder') {
+      const filePath = path.join(FOLDER_PATH, uuidv4());
       await fs.writeFile(filePath, data);
       file.localPath = filePath;
     }
     const result = await dbClient.db.collection('files').insertOne(file);
-    delete file._id;
-    return res.status(201).send({ id: result.insertedId, ...file });
+    const userId = user._id.toString();
+    return res.status(201).json({
+      id: result.insertedId,
+      userId,
+      name,
+      type,
+      isPublic,
+      parentId: parentId === 0 ? '0' : parentId,
+    });
   }
 
   // get the file based on the file id
