@@ -50,7 +50,7 @@ class FilesController {
       file.localPath = filePath;
     }
     const result = await dbClient.db.collection('files').insertOne(file);
-    const userId = user._id.toString();
+    const userId = user._id;
     return res.status(201).json({
       id: result.insertedId,
       userId,
@@ -70,11 +70,8 @@ class FilesController {
 
     const fileId = req.params.id;
     const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(fileId), userId: user._id });
-    if (!file) {
-      return res.status(404).send({ error: 'Not found' });
-    }
-    delete file._id;
-    return res.status(200).send({ id: fileId, ...file });
+    const { _id, ...rest } = file;
+    return res.status(200).send({ id: _id, ...rest });
   }
 
   // get the list of files based on the parentId
@@ -91,7 +88,6 @@ class FilesController {
     const query = { userId: ObjectId(user._id), parentId };
     // const files = await collection.find(query).skip(skip).limit(limit).toArray();
     const files = await collection.find(query).skip(skip).limit(limit).toArray();
-    console.log(files.length);
     return res.status(200).send(
       files.map((file) => {
         const { _id, ...rest } = file;
