@@ -34,6 +34,9 @@ class FilesController {
       if (!parent) {
         return res.status(400).json({ error: 'Parent not found' });
       }
+      if (parent.type !== 'folder') {
+        return res.status(400).json({ error: 'Parent is not a folder' });
+      }
     }
     const data = Buffer.from(base64Data, 'base64');
     const file = {
