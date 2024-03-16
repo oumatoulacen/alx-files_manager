@@ -1,67 +1,83 @@
 // const { promisify } = require('util');
 const { v4: uuidv4 } = require('uuid');
 const { ObjectId } = require('mongodb');
-const path = require('path');
 const fs = require('fs').promises;
 
 const redisClient = require('../utils/redis');
 const dbClient = require('../utils/db');
 // const AuthController = require('./AuthController');
 
-const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 class FilesController {
   static async postUpload(req, res) {
-    const user = await FilesController.getUser(req);
-    if (!user) {
-      return res.status(401).send({ error: 'Unauthorized' });
+    const userId = await FilesController.getUser(req).then((user) => user._id.toString());
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
-
-    const name = req.body ? req.body.name : null;
-    const type = req.body ? req.body.type : null;
-    const parentId = req.body.parentId && req.query.parentId !== '0' ? req.body.parentId : 0;
-    const isPublic = req.body.isPublic ? req.body.isPublic : false;
-    const base64Data = req.body.data;
-
-    if (!name) return res.status(400).json({ error: 'Missing name' });
-    if (!type || !['folder', 'file', 'image'].includes(type)) {
+    const user = await dbClient.db.collection('users').findOne({ _id: ObjectId(userId) });
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    const {
+      name, type, parentId = 0, isPublic = false, data,
+    } = req.body;
+    const allowedTypes = ['file', 'image', 'folder'];
+    if (!name) {
+      return res.status(400).json({ error: 'Missing name' });
+    }
+    if (!type || !(allowedTypes.includes(type))) {
       return res.status(400).json({ error: 'Missing type' });
     }
-    if (!base64Data && type !== 'folder') {
+    if (!data && type !== 'folder') {
       return res.status(400).json({ error: 'Missing data' });
     }
     if (parentId) {
-      const parent = await dbClient.db.collection('files').findOne({ _id: ObjectId(parentId) });
-      if (!parent) {
+      const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(parentId) });
+
+      if (!file) {
         return res.status(400).json({ error: 'Parent not found' });
       }
-      if (parent.type !== 'folder') {
+      if (file.type !== 'folder') {
         return res.status(400).json({ error: 'Parent is not a folder' });
       }
     }
-    const data = Buffer.from(base64Data, 'base64');
-    const file = {
-      userId: ObjectId(user._id),
-      name,
-      type,
-      isPublic,
-      parentId: parentId === 0 ? '0' : ObjectId(parentId),
-    };
-    if (type === 'folder') await fs.mkdir(FOLDER_PATH, { recursive: true });
-    if (type !== 'folder') {
-      const filePath = path.join(FOLDER_PATH, uuidv4());
-      await fs.writeFile(filePath, data);
-      file.localPath = filePath;
-    }
-    const result = await dbClient.db.collection('files').insertOne(file);
-    const userId = user._id;
-    return res.status(201).json({
-      id: result.insertedId.toString(),
-      userId: userId.toString(),
+    const objectData = {
+      userId: user._id.toString(),
       name,
       type,
       isPublic,
       parentId,
-    });
+    };
+    if (type === 'folder') {
+      const newFolder = await dbClient.db.collection('files').insertOne(objectData);
+      const [ops] = newFolder.ops;
+      const result = {
+        id: ops._id.toString(),
+        userId: ops.userId,
+        name: ops.name,
+        type: ops.type,
+        isPublic: ops.isPublic,
+        parentId: ops.parentId,
+      };
+      return res.status(201).json(result);
+    }
+    const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
+    const filename = uuidv4();
+    const filePath = `${folderPath}/${filename}`;
+    const fileData = Buffer.from(data, 'base64');
+    await fs.mkdir(folderPath, { recursive: true });
+    await fs.writeFile(filePath, fileData);
+    objectData.localPath = filePath;
+    const uploadFlie = await dbClient.db.collection('files').insertOne(objectData);
+    const [ops] = uploadFlie.ops; // we can do also ops = uploadFile.ops[0]
+    const result = {
+      id: ops._id.toString(),
+      userId: ops.userId,
+      name: ops.name,
+      type: ops.type,
+      isPublic: ops.isPublic,
+      parentId: ops.parentId,
+    };
+    return res.status(201).json(result);
   }
 
   // get the file based on the file id
