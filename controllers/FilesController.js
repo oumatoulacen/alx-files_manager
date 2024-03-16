@@ -1,4 +1,5 @@
 const { ObjectId } = require('mongodb');
+const mimeTypes = require('mime-types');
 const fs = require('fs');
 const uuid = require('uuid');
 const dbClient = require('../utils/db');
@@ -109,12 +110,15 @@ class FilesController {
     let query;
     if (!parentId) {
       query = {
-        userId: ObjectId(userId),
+        // userId: ObjectId(userId),
+        userId,
       };
     } else {
       query = {
-        userId: ObjectId(userId),
-        parentId: ObjectId(parentId),
+        // userId: ObjectId(userId),
+        // parentId: ObjectId(parentId),
+        userId,
+        parentId,
       };
     }
     const paginationFiles = [
@@ -165,6 +169,48 @@ class FilesController {
       return res.status(404).json({ error: 'Not found' });
     }
     return res.status(200).json(file.value);
+  }
+
+  // eslint-disable-next-line consistent-return
+  static async getFile(req, res) {
+    const userId = await getTokenUser(req);
+    const fileId = req.params.id;
+
+    // Check if file document exists
+    const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(fileId) });
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    console.log('req user: ', req.user);
+    // Check if file is public or user is authenticated/owner
+    if (!file.isPublic && (!userId || userId !== file.userId)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    // Check if file is a folder
+    if (file.type === 'folder') {
+      return res.status(400).json({ error: "A folder doesn't have content" });
+    }
+
+    // Check if file exists locally
+    const filePath = file.localPath;
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    // Get MIME type based on file name
+    const mimeType = mimeTypes.lookup(file.name);
+    console.log('mimeType: ', mimeType);
+    // Set headers for file download
+    res.setHeader('Content-Type', mimeType);
+    // eslint-disable-next-line max-len
+    // It's primarily used when you want the browser to treat the response content as a downloadable file and prompt the user to save it with a specific filename
+    // res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+
+    // Stream file content to response
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
   }
 }
 
