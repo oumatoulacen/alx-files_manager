@@ -1,9 +1,8 @@
 const { ObjectId } = require('mongodb');
-const dbClient = require('../utils/db');
-const redisClient = require('../utils/redis');
-
 const fs = require('fs');
 const uuid = require('uuid');
+const dbClient = require('../utils/db');
+const redisClient = require('../utils/redis');
 
 const getTokenUser = async (req) => {
   const myToken = req.header('X-Token');
@@ -97,6 +96,39 @@ class FilesController {
     }
     const { _id, ...element } = file;
     return res.status(200).json({ id: _id, ...element });
+  }
+
+  static async getIndex(req, res) {
+    const userId = await getTokenUser(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { parentId, page = 0 } = req.query;
+    const limit = 20;
+
+    let query;
+    if (!parentId) {
+      query = {
+        userId: ObjectId(userId),
+      };
+    } else {
+      query = {
+        userId: ObjectId(userId),
+        parentId: ObjectId(parentId),
+      };
+    }
+    const paginationFiles = [
+      { $match: query },
+      { $skip: (+page) * limit }, // +'123' === 123
+      { $limit: limit },
+    ];
+
+    const result = await dbClient.db.collection('files').aggregate(paginationFiles).toArray();
+    const modefyfResult = result.map(({ _id, localPath, ...element }) => ({
+      id: _id,
+      ...element,
+    }));
+    return res.status(200).json(modefyfResult);
   }
 
   static async putPublish(req, res) {
