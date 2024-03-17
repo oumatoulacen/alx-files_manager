@@ -179,9 +179,8 @@ class FilesController {
       return res.status(404).json({ error: 'Not found' });
     }
 
-    console.log('req user: ', req.user);
     // Check if file is public or user is authenticated/owner
-    if (!file.isPublic && (!userId || userId !== file.userId)) {
+    if (!file.isPublic && (!userId || userId !== file.userId.toString())) {
       return res.status(404).json({ error: 'Not found' });
     }
 
