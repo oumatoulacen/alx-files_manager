@@ -31,6 +31,6 @@ route.put('/files/:id/publish', FilesController.putPublish);
 route.put('/files/:id/unpublish', FilesController.putUnpublish);
 
 // file data
-// route.get('/files/:id/data', FilesController.getFile);
+route.get('/files/:id/data', FilesController.getFile);
 
 module.exports = route;
